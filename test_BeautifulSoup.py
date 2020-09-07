@@ -1,8 +1,7 @@
 import re  # import regular expressioon
 import requests
 
-# this function will find and return all the valid url
-# in the given string and return them in an array.
+
 def find_valid_url(url_string):
     """
     find and return all the valid urls
@@ -13,6 +12,16 @@ def find_valid_url(url_string):
     regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
     url = re.findall(regex, url_string)
     return [x[0] for x in url]
+
+
+def is_alive(valid_url):
+    """
+    check whether the url given is reachable
+    param valid_url: url in string
+    return type: boolean, true if respond is 200, false for others
+    """
+    r = requests.get(valid_url)
+    return (r.status_code == 200)
 
 
 """
@@ -28,7 +37,11 @@ starting_urls = find_valid_url(starting_string)
 if len(starting_urls) > 0:
     # set the first url found as base url
     base_url = starting_urls[0]
-    print(base_url)
+    # check whether the first url is reachable
+    print(is_alive(starting_urls[0]))
+    
+
+    
 
 else:
     print("No urls found in the string.")
