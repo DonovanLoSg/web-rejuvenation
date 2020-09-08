@@ -107,8 +107,7 @@ MAIN
 
 # define the starting url string.
 # this will be an input from the user
-starting_string = 'my homepage is http://resume.donovanlo.sg?all and linkedin profile is www.linkedin.sg http://resume.donovanlo.sg/some/path //www.example.com/some/path  /some/path'
-
+starting_string = 'my homepage is http://resume.donovanlo.sg?all and http://resume.donovanlo.sg?all linkedin profile is www.linkedin.sg http://resume.donovanlo.sg/some/path //www.example.com/some/path  /some/path'
 # place the found urls into urls array
 starting_urls = find_valid_url(starting_string)
 # initialise an array to keep the url and info
@@ -117,7 +116,6 @@ url_list = []
 if len(starting_urls) > 0:
     # set the first url found as base url
     starting_base_url = extract_domain(starting_urls[0])
-    print('starting base url : '+starting_base_url)
     # if the first url is reachable. start crawling
     if is_alive(starting_urls[0]):
         # add the starting url into the list as dict
@@ -127,17 +125,19 @@ if len(starting_urls) > 0:
             each_url = build_absolute_url(each_url, starting_base_url)
             # add to url list only if it belong to the same domain
             if extract_domain(each_url) == starting_base_url:
-                # TODO: to check for duplicates
+                # if it's a duplicate, don't add
+                if url_list.count({"url": each_url}) == 0:
+                    url_list.append({"url": build_absolute_url(
+                        each_url, starting_base_url)})
 
-
-                
-                url_list.append({"url": build_absolute_url(
-                    each_url, starting_base_url)})
+        print(url_list)
         for idx, val in enumerate(url_list):
             # check whether the url is reachable
             url_reachable = is_alive(url_list[idx]["url"])
             url_list[idx].update({"reachable": url_reachable})
-
+            if url_reachable:
+                # proceed with web scrabbing
+                print('proceed with '+url_list[idx]["url"])
 
 
 
@@ -145,7 +145,6 @@ if len(starting_urls) > 0:
             # check whether the url belong to the same site as base url
 
 
-        print(url_list)
 
 
     else:
