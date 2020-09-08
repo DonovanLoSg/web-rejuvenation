@@ -127,19 +127,23 @@ if len(starting_urls) > 0:
             each_url = build_absolute_url(each_url, starting_base_url)
             # add to url list only if it belong to the same domain
             if extract_domain(each_url) == starting_base_url:
+                # TODO: to check for duplicates
+
+
+                
                 url_list.append({"url": build_absolute_url(
                     each_url, starting_base_url)})
         for idx, val in enumerate(url_list):
-            print(get_path(url_list[idx]["url"]))
             # check whether the url is reachable
+            url_reachable = is_alive(url_list[idx]["url"])
+            url_list[idx].update({"reachable": url_reachable})
+
+
 
 
 
             # check whether the url belong to the same site as base url
-            # if not a absolute url, prefix with base url
-            # check whether the url is a valid url
-            # check whether the url is reachable
-            # 
+
 
         print(url_list)
 
@@ -153,8 +157,7 @@ else:
 
 
 
-# If it is a valid URL
-#     add string into array urls
+
 #     proceed with web crawling
 #     {add other required operation}
 #     word count // detemine pages
