@@ -103,7 +103,7 @@ def retrieve_html(full_url):
     """
     download the html from the given url
     param full_url: string (an url stating with http)
-    return page: string (either a html page or an error message)
+    return type: string (either a html page or an error message)
     """
     if full_url.startswith('http'):
         res = requests.get(full_url)
@@ -113,15 +113,22 @@ def retrieve_html(full_url):
         return('Error: Please use a full url starting with http')
 
 
+def count_words(full_url):
+    """
+    count the numbers of words in the given url
+    param html_page: html document
+    return type: integer (number of words)
+    """
+    if full_url.startswith('http'):
+        html_page = retrieve_html(full_url)
+        soup = BeautifulSoup(html_page, 'html.parser')
+        text = soup.get_text()
+        print(' ')
+        print(text)
+        print(' ')
+    else:
+        return('Error: Please use a full url starting with http')
 
-
-
-def count_words(html_page):
-    soup = BeautifulSoup(html_page, 'html.parser')
-    text = soup.find_all(text=True)
-    print(' ')
-    print(soup.prettify())
-    print(' ')
 
 
 
@@ -166,7 +173,7 @@ if len(starting_urls) > 0:
             url_list[idx].update({"reachable": url_reachable})
             if url_reachable:
                 # proceed with web scrabbing
-                print(retrieve_html(url_list[idx]["url"]))
+                print(count_words(url_list[idx]["url"]))
 
 
 
