@@ -2,6 +2,10 @@
 import re
 import requests
 from urllib.parse import urlsplit, urlparse, urljoin, ParseResult
+from bs4 import BeautifulSoup
+
+
+
 
 
 def find_valid_url(url_string):
@@ -78,6 +82,8 @@ def build_absolute_url(url_string, base_url_string):
     """
     if the string is not a valid url with "http" or "https",
     convert the string into one
+    param url_string: string (the url to be parsed)
+    param base_url_string: string (the base url that contain the domain name)
     return type: string (coverted url)
     Reference: https://docs.python.org/3/library/urllib.parse.html
     """
@@ -93,17 +99,40 @@ def build_absolute_url(url_string, base_url_string):
         return urljoin(base_url_string, url_string)
 
 
+def retrieve_html(full_url):
+    """
+    download the html from the given url
+    param full_url: string (an url stating with http)
+    return page: string (either a html page or an error message)
+    """
+    if full_url.startswith('http'):
+        res = requests.get(full_url)
+        html_page = res.content
+        return html_page
+    else:
+        return('Error: Please use a full url starting with http')
 
 
 
 
 
+def count_words(html_page):
+    soup = BeautifulSoup(html_page, 'html.parser')
+    text = soup.find_all(text=True)
+    print(' ')
+    print(soup.prettify())
+    print(' ')
 
 
 
 """
 MAIN
 """
+# setting config variables
+words_per_page = 300
+
+
+
 
 # define the starting url string.
 # this will be an input from the user
@@ -137,7 +166,7 @@ if len(starting_urls) > 0:
             url_list[idx].update({"reachable": url_reachable})
             if url_reachable:
                 # proceed with web scrabbing
-                print('proceed with '+url_list[idx]["url"])
+                print(retrieve_html(url_list[idx]["url"]))
 
 
 
