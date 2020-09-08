@@ -36,10 +36,32 @@ def get_path(url_string):
     strip_base = base.replace("www.", "")
     starting_base_url = "{0.scheme}://{0.netloc}".format(parts)
     path = url_string[:url_string.rfind('/')+1] if '/' in parts.path else url_string
-    print("strip_base: " + strip_base)
-    print("starting_base_url:" + starting_base_url)
-    print("path:" + path)
+    # print("strip_base: " + strip_base)
+    # print("starting_base_url:" + starting_base_url)
+    # print("path:" + path)
     return path
+
+
+def extract_domain(url, remove_http=False):
+    """
+    extract domain name from given url
+    param url_string: string
+    param remove_http: boolean
+    return type: string (containing domain name with or without http)
+    Source: https://pydeep.com/get-domain-name-from-url-python-snippet/
+    """
+    uri = urlparse(url)
+    if remove_http:
+        domain_name = f"{uri.netloc}"
+    else:
+        if uri.netloc == "":
+            domain_name = ""
+        else:
+            if uri.scheme == "":
+                domain_name = f"http://{uri.netloc}"
+            else:
+                domain_name = f"{uri.scheme}://{uri.netloc}"
+    return domain_name
 
 
 def is_alive(valid_url):
@@ -63,8 +85,8 @@ def build_absolute_url(url_string, base_url_string):
         p = urlparse(url_string, 'http')
         netloc = p.netloc or p.path
         path = p.path if p.netloc else ''
-        if not netloc.startswith('www.'):
-            netloc = 'www.' + netloc
+        # if not netloc.startswith('www.'):
+        #     netloc = 'www.' + netloc
         p = ParseResult('http', netloc, path, *p[3:])
         return p.geturl()
     else:
@@ -85,7 +107,7 @@ MAIN
 
 # define the starting url string.
 # this will be an input from the user
-starting_string = 'my homepage is http://resume.donovanlo.sg?all and linkedin profile is www.linkedin.sg http://www.example.com/some/path //www.example.com/some/path  /some/path'
+starting_string = 'my homepage is http://resume.donovanlo.sg?all and linkedin profile is www.linkedin.sg http://resume.donovanlo.sg/some/path //www.example.com/some/path  /some/path'
 
 # place the found urls into urls array
 starting_urls = find_valid_url(starting_string)
@@ -94,15 +116,24 @@ url_list = []
 
 if len(starting_urls) > 0:
     # set the first url found as base url
-    starting_base_url = starting_urls[0]
+    starting_base_url = extract_domain(starting_urls[0])
+    print('starting base url : '+starting_base_url)
     # if the first url is reachable. start crawling
     if is_alive(starting_urls[0]):
         # add the starting url into the list as dict
         # note: the starting url are retreived using find_valid_url,
         # therefore, they will be valid url
         for each_url in starting_urls:
-            url_list.append({"url": build_absolute_url(
-                each_url, starting_base_url)})
+            each_url = build_absolute_url(each_url, starting_base_url)
+            # add to url list only if it belong to the same domain
+            if extract_domain(each_url) == starting_base_url:
+                url_list.append({"url": build_absolute_url(
+                    each_url, starting_base_url)})
+        for idx, val in enumerate(url_list):
+            print(get_path(url_list[idx]["url"]))
+            # check whether the url is reachable
+
+
 
             # check whether the url belong to the same site as base url
             # if not a absolute url, prefix with base url
