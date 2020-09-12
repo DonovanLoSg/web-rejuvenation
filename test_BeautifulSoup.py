@@ -118,16 +118,52 @@ def count_words(full_url):
     count the numbers of words in the given url
     param html_page: html document
     return type: integer (number of words)
+                  -1 means error
+    """
+    if full_url.startswith('http'):
+        my_wordlist = []
+        html_page = retrieve_html(full_url)
+        soup = BeautifulSoup(html_page, 'html.parser')
+        text = soup.get_text()
+        words = text.lower().split()
+        for each_word in words:
+            my_wordlist.append(each_word)
+        return(len(my_wordlist))
+    else:
+        return(-1)
+
+
+def count_images(full_url):
+    """
+    count the numbers of image in the given url
+    param html_page: html document
+    return type: integer (number of words)
+                  -1 means error
+    """
+    if full_url.startswith('http'):
+        my_imageslist = []
+        html_page = retrieve_html(full_url)
+        soup = BeautifulSoup(html_page, 'html.parser')
+        images = soup.find_all('img')
+        for each_image in images:
+            my_imageslist.append(each_image.get('src'))
+    return (len(images))
+
+def check_for_scripts(full_url):
+    """
+    check whether there is any script in the given url
+    param html_page: html document
+    return type: boolean
     """
     if full_url.startswith('http'):
         html_page = retrieve_html(full_url)
         soup = BeautifulSoup(html_page, 'html.parser')
-        text = soup.get_text()
-        print(' ')
-        print(text)
-        print(' ')
-    else:
-        return('Error: Please use a full url starting with http')
+        scripts_found = soup.find_all('script')
+        if len(scripts_found) > 0:
+            return True
+        else:
+            return False
+
 
 
 
@@ -137,6 +173,7 @@ MAIN
 """
 # setting config variables
 words_per_page = 300
+basic_overhead_cost_per_project = 500
 
 
 
@@ -166,14 +203,22 @@ if len(starting_urls) > 0:
                     url_list.append({"url": build_absolute_url(
                         each_url, starting_base_url)})
 
-        print(url_list)
+
         for idx, val in enumerate(url_list):
             # check whether the url is reachable
             url_reachable = is_alive(url_list[idx]["url"])
             url_list[idx].update({"reachable": url_reachable})
+            print(url_list)
             if url_reachable:
                 # proceed with web scrabbing
-                print(count_words(url_list[idx]["url"]))
+                num_of_words = count_words(url_list[idx]["url"])
+                num_of_pages = num_of_words // words_per_page + 1
+                url_list[idx].update({"words": num_of_words})
+                url_list[idx].update({"pages": num_of_pages})
+                num_of_images = count_images(url_list[idx]["url"])
+                url_list[idx].update({"images": num_of_images})
+                page_contain_scripts = check_for_scripts(url_list[idx]["url"])
+                url_list[idx].update({"contain scripts": page_contain_scripts})
 
 
 
@@ -193,9 +238,7 @@ else:
 
 
 
-#     proceed with web crawling
-#     {add other required operation}
-#     word count // detemine pages
+
 #     multimedia file count
 #     images count
 #     for each links in url array
