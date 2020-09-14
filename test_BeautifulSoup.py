@@ -1,11 +1,8 @@
 # import regular expressioon
 import re
 import requests
-from urllib.parse import urlsplit, urlparse, urljoin, ParseResult
+from urllib.parse import urlparse, urljoin, ParseResult
 from bs4 import BeautifulSoup
-
-
-
 
 
 def find_valid_url(url_string):
@@ -28,23 +25,6 @@ def is_valid_url(url_string):
     """
     regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
     return bool(re.search(regex, url_string))
-
-
-def get_path(url_string):
-    """
-    split up the url_string to get the base url
-    param url_string: string
-    return type: string (of the base url)
-    """
-    parts = urlsplit(url_string)
-    base = "{0.netloc}".format(parts)
-    strip_base = base.replace("www.", "")
-    starting_base_url = "{0.scheme}://{0.netloc}".format(parts)
-    path = url_string[:url_string.rfind('/')+1] if '/' in parts.path else url_string
-    # print("strip_base: " + strip_base)
-    # print("starting_base_url:" + starting_base_url)
-    # print("path:" + path)
-    return path
 
 
 def extract_domain(url, remove_http=False):
@@ -193,7 +173,8 @@ def check_for_scripts(full_url):
 
 def strip_url_string(url_string):
     """
-    locate the '#' and remove them along with the remainder of the given url string
+    locate the '#' and remove them along
+    with the remainder of the given url string
     param url_string: string
     return type:  string
     """
@@ -281,7 +262,7 @@ def retrieve_info(starting_url):
         current_record.update({"valid url": valid_url})
         if valid_url:
             # check whether  it's in the same domain
-            within_domain = (extract_domain(current_url) == starting_base_url)
+            within_domain = (current_domain == starting_base_url)
             current_record.update({"within domain": within_domain})
             if within_domain:
                 # check whether the domain is reachable
@@ -300,14 +281,15 @@ def retrieve_info(starting_url):
                         num_of_images = count_images(current_url)
                         current_record.update({"images": num_of_images})
                         page_contain_scripts = check_for_scripts(current_url)
-                        current_record.update({"contain scripts": page_contain_scripts})
+                        current_record.update({"contain scripts":
+                                              page_contain_scripts})
                         # scrap links on page
                         links_on_page = []
                         # extract links from the page for processing
                         links_on_page = extract_links(current_url)
                         # remove duplicates from the link list
                         links_on_page = remove_duplicates(links_on_page)
-                        base_url = extract_domain(current_url)
+                        base_url = current_domain
                         for each_link in links_on_page:
                             each_link = strip_url_string(each_link)
                             each_link = build_absolute_url(each_link, base_url)
@@ -353,7 +335,6 @@ def retrieve_info(starting_url):
     return url_list
 
 
-
 """
 MAIN
 """
@@ -363,11 +344,13 @@ basic_overhead_cost_per_project = 500
 
 # define the starting url string.
 # this will be an input from the user
-starting_string = 'http://resume.donovanlo.sg?all http://resume.donovanlo.sg/index.html http://resume.donovanlo.sg?all linkedin profile is www.linkedin.sg http://resume.donovanlo.sg/some/path //www.example.com/some/path  /some/path'
+starting_string = 'http://resume.donovanlo.sg?all'
+'http://resume.donovanlo.sg/index.html http://resume.donovanlo.sg?all'
+'linkedin profile is www.linkedin.sg'
+' http://resume.donovanlo.sg/some/path'
+'//www.example.com/some/path  /some/path'
 
 result = retrieve_info(starting_string)
 
 for x in result:
     print(x)
-
- 
