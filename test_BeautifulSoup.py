@@ -19,6 +19,7 @@ def find_valid_url(url_string):
     url = re.findall(regex, url_string)
     return [x[0] for x in url]
 
+
 def is_valid_url(url_string):
     """
     check whether the given string is valid url using regex
@@ -74,7 +75,10 @@ def is_alive(valid_url):
     param valid_url: url in string
     return type: boolean, true if respond is 200, false for others
     """
-    r = requests.get(valid_url)
+    try:
+        r = requests.get(valid_url)
+    except Exception:
+        return("False")
     return (r.status_code == 200)
 
 
@@ -106,11 +110,32 @@ def retrieve_html(full_url):
     return type: string (either a html page or an error message)
     """
     if full_url.startswith('http'):
-        res = requests.get(full_url)
-        html_page = res.content
-        return html_page
+        response = requests.head(full_url)
+        if "text/html" in response.headers["content-type"]:
+            response = requests.get(full_url)
+            html_page = response.content
+            return html_page
+        else:
+            return('Error: Non html page')
     else:
         return('Error: Please use a full url starting with http')
+
+
+def is_html(full_url):
+    """
+    check the type of content of the given url
+    param full_url: string (an url stating with http)
+    return type: boolean (True is content type is html,
+                          False if it's not or error encountered)
+    """
+    if full_url.startswith('http'):
+        response = requests.head(full_url)
+        if "text/html" in response.headers["content-type"]:
+            return True
+        else:
+            return False
+    else:
+        return False
 
 
 def count_words(full_url):
@@ -149,6 +174,7 @@ def count_images(full_url):
             my_imageslist.append(each_image.get('src'))
     return (len(images))
 
+
 def check_for_scripts(full_url):
     """
     check whether there is any script in the given url
@@ -165,6 +191,166 @@ def check_for_scripts(full_url):
             return False
 
 
+def strip_url_string(url_string):
+    """
+    locate the '#' and remove them along with the remainder of the given url string
+    param url_string: string
+    return type:  string
+    """
+    try:
+        url_string = url_string[:url_string.index('#')]
+    except Exception:
+        pass
+    return url_string
+
+
+def extract_links(full_url):
+    """
+    extract all the 'a' links on the page
+    param html_page: html document
+    return type :  list (a list of url)
+    """
+    if full_url.startswith('http'):
+        starting_base_url = extract_domain(full_url)
+        my_a_tags = []
+        html_page = retrieve_html(full_url)
+        soup = BeautifulSoup(html_page, 'html.parser')
+        a_tags = soup.find_all('a')
+        for each_a_tag in a_tags:
+            href = each_a_tag.attrs.get("href")
+            href = strip_url_string(href)
+            if href not in ["NULL", "_blank", "None", None, "NoneType"]:
+                href = build_absolute_url(href, starting_base_url)
+                my_a_tags.append(href)
+        return my_a_tags
+    return None
+
+
+def is_url_in_list(my_url, my_list):
+    """
+    check whether the given url is in the list of dictionaries
+    param my_url: sting (the url searching for)
+    param my_list: list (of dictionairies containing a key "url")
+    return type: Boolean
+    """
+    for each_dict in my_list:
+        if each_dict["url"] == my_url:
+            return True
+    return False
+
+
+def remove_duplicates(my_list):
+    """
+    remove duplicates items in the list
+    param my_list: list
+    return type: list
+    """
+    final_list = []
+    for item in my_list:
+        if item not in final_list:
+            final_list.append(item)
+    return final_list
+
+
+def retrieve_info(starting_url):
+    """
+    retrieve the information from the website of the given url
+    param starting_url: sting (the url to start crawling)
+    return type: list (of dictionairies)
+    """
+    # place the found urls into urls array
+    starting_urls = find_valid_url(starting_string)
+    starting_urls = remove_duplicates(starting_urls)
+    # initialise an array to keep the url and info
+    url_list = []  # store processed url
+    # remove duplicates from the link list
+    queue_url_list = starting_urls
+    starting_base_url = extract_domain(starting_urls[0])
+    for each_url in queue_url_list:
+        each_url = strip_url_string(each_url)
+        each_url = build_absolute_url(each_url, starting_base_url)
+    queue_url_list = remove_duplicates(queue_url_list)
+    while len(queue_url_list) > 0:
+        current_url = queue_url_list.pop(0)
+        current_domain = extract_domain(current_url)
+        current_record = {}
+        current_record.update({"url": current_url})
+        # check whether the url is valid
+        current_url = build_absolute_url(current_url, starting_base_url)
+        valid_url = is_valid_url(current_url)
+        current_record.update({"valid url": valid_url})
+        if valid_url:
+            # check whether  it's in the same domain
+            within_domain = (extract_domain(current_url) == starting_base_url)
+            current_record.update({"within domain": within_domain})
+            if within_domain:
+                # check whether the domain is reachable
+                reachable = is_alive(current_url)
+                current_record.update({"reachable": reachable})
+                if reachable:
+                    # check the page has html content
+                    html_content = is_html(current_url)
+                    current_record.update({"html content": html_content})
+                    if html_content:
+                        # proceed with web scrapping
+                        num_of_words = count_words(current_url)
+                        num_of_pages = num_of_words // words_per_page + 1
+                        current_record.update({"words": num_of_words})
+                        current_record.update({"pages": num_of_pages})
+                        num_of_images = count_images(current_url)
+                        current_record.update({"images": num_of_images})
+                        page_contain_scripts = check_for_scripts(current_url)
+                        current_record.update({"contain scripts": page_contain_scripts})
+                        # scrap links on page
+                        links_on_page = []
+                        # extract links from the page for processing
+                        links_on_page = extract_links(current_url)
+                        # remove duplicates from the link list
+                        links_on_page = remove_duplicates(links_on_page)
+                        base_url = extract_domain(current_url)
+                        for each_link in links_on_page:
+                            each_link = strip_url_string(each_link)
+                            each_link = build_absolute_url(each_link, base_url)
+                        links_on_page = remove_duplicates(links_on_page)
+                        for each_link in links_on_page:
+                            to_queue_url = True
+                            # check validity of the url
+                            try:
+                                if not(is_valid_url(each_link)):
+                                    to_queue_url = False
+                            except Exception:
+                                pass
+                            # check whether it is within the domain
+                            try:
+                                if not(base_url == extract_domain(each_link)):
+                                    to_queue_url = False
+                            except Exception:
+                                pass
+                            # check whether it exist in the url list
+                            try:
+                                if (is_url_in_list(each_link, url_list)):
+                                    to_queue_url = False
+                            except Exception:
+                                pass
+                            # check whether it exist in the queued url list
+                            try:
+                                if each_link in queue_url_list:
+                                    to_queue_url = False
+                            except Exception:
+                                pass
+                            # check whether it the current url
+                            try:
+                                if current_url == each_link:
+                                    to_queue_url = False
+                            except Exception:
+                                pass
+                            # add records to url list
+                            if to_queue_url:
+                                queue_url_list.append(each_link)
+                            else:
+                                to_queue_url = True
+        url_list.append(current_record)
+    return url_list
 
 
 
@@ -175,90 +361,13 @@ MAIN
 words_per_page = 300
 basic_overhead_cost_per_project = 500
 
-
-
-
 # define the starting url string.
 # this will be an input from the user
-starting_string = 'my homepage is http://resume.donovanlo.sg?all and http://resume.donovanlo.sg?all linkedin profile is www.linkedin.sg http://resume.donovanlo.sg/some/path //www.example.com/some/path  /some/path'
-# place the found urls into urls array
-starting_urls = find_valid_url(starting_string)
-# initialise an array to keep the url and info
-url_list = []
+starting_string = 'http://resume.donovanlo.sg?all http://resume.donovanlo.sg/index.html http://resume.donovanlo.sg?all linkedin profile is www.linkedin.sg http://resume.donovanlo.sg/some/path //www.example.com/some/path  /some/path'
 
-if len(starting_urls) > 0:
-    # set the first url found as base url
-    starting_base_url = extract_domain(starting_urls[0])
-    # if the first url is reachable. start crawling
-    if is_alive(starting_urls[0]):
-        # add the starting url into the list as dict
-        # note: the starting url are retreived using find_valid_url,
-        # therefore, they will be valid url
-        for each_url in starting_urls:
-            each_url = build_absolute_url(each_url, starting_base_url)
-            # add to url list only if it belong to the same domain
-            if extract_domain(each_url) == starting_base_url:
-                # if it's a duplicate, don't add
-                if url_list.count({"url": each_url}) == 0:
-                    url_list.append({"url": build_absolute_url(
-                        each_url, starting_base_url)})
+result = retrieve_info(starting_string)
 
+for x in result:
+    print(x)
 
-        for idx, val in enumerate(url_list):
-            # check whether the url is reachable
-            url_reachable = is_alive(url_list[idx]["url"])
-            url_list[idx].update({"reachable": url_reachable})
-            print(url_list)
-            if url_reachable:
-                # proceed with web scrabbing
-                num_of_words = count_words(url_list[idx]["url"])
-                num_of_pages = num_of_words // words_per_page + 1
-                url_list[idx].update({"words": num_of_words})
-                url_list[idx].update({"pages": num_of_pages})
-                num_of_images = count_images(url_list[idx]["url"])
-                url_list[idx].update({"images": num_of_images})
-                page_contain_scripts = check_for_scripts(url_list[idx]["url"])
-                url_list[idx].update({"contain scripts": page_contain_scripts})
-
-
-
-
-            # check whether the url belong to the same site as base url
-
-
-
-
-    else:
-        print("The first url specified is unreachable.")
-else:
-    print("No urls found in the string.")
-
-
-
-
-
-
-
-#     multimedia file count
-#     images count
-#     for each links in url array
-#          get all the a links
-#          check whether it's an absolute url or relative url
-#          strip anchor '#'
-#          strip query '?'
-#          if absolute url
-#                check whether it's same domain.
-#                if not same domain, check validity of the link
-#                   if url is valid, add it to the array urls
-#                   else skip
-#                else skip
-#          else if relative url
-#                check whether it start from '\'
-#                if start from '\' append domain name
-#                if not append domain name and source directory
-#                test whether it is a valid url
-#                      if it's valid, add it to array urls
-#                     if it's not valid, skip
-#           else skip
-# If it is not a valil URL
-#    return error message
+ 
