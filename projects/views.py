@@ -2,4 +2,5 @@ from django.shortcuts import render, HttpResponse
 
 # Create your views here.
 def index(request):
-    return HttpResponse("project app")
+    return render(request, 'projects/index.template.html')
+    # return HttpResponse("project app")
